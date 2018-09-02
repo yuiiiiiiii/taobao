@@ -10,11 +10,5 @@ import scrapy
 
 class TaobaoItem(scrapy.Item):
     # define the fields for your item here like:
-    title = scrapy.Field()
-    price = scrapy.Field()
-    free_shipping = scrapy.Field()
-    month_sale = scrapy.Field()
-    prop = scrapy.Field()
-    shop = scrapy.Field()
-    addr = scrapy.Field()
+    label = scrapy.Field()
     comment = scrapy.Field()

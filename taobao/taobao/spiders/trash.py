@@ -25,8 +25,14 @@ class TaobaoSpider(scrapy.Spider):
 	chrome_opt = webdriver.ChromeOptions()
 	prefs = {"profile.managed_default_content_settings.images": 2}
 	chrome_opt.add_experimental_option("prefs", prefs)
-	id = urllib.quote("阔腿裤")
-	url = 'https://s.taobao.com/search?q='+id+'&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8'
+        query_list = ["阔腿裤","T恤","运动鞋"]
+	urls = []
+
+	for item in query_list:
+		id = urllib.quote(item)
+		url = 'https://s.taobao.com/search?q='+id+'&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8&s=44'
+		urls.append(url)
+
 	
 
 	def __init__(self):
@@ -44,36 +50,25 @@ class TaobaoSpider(scrapy.Spider):
 
 	def start_requests(self):
 		# url = 'https://s.taobao.com/search?q=%E9%98%94%E8%85%BF%E8%A3%A4&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8'
-		yield scrapy.Request(url = self.url,callback = self.parse)
+            for i in range(3):
+                link = self.urls[i]
+                label = self.query_list[i]	
+                yield scrapy.Request(url = link,meta={'label':label},callback = self.parse)
 
 	def spider_closed(self):
 	    self.browser.close()
 
 	def parse(self, response):
-		target = re.findall(r'"nid":"(.*?)"',response.body)
-		title = re.findall(r'"raw_title":"(.*?)"',response.body)
-		shipping = re.findall(r'"view_fee":"(.*?)"',response.body)
-		prices = re.findall(r'"view_price":"(.*?)"',response.body)
-		places = re.findall(r'"item_loc":"(.*?)"',response.body)
-		sales = re.findall(r'"view_sales":"(.*?)"',response.body)
-		shops = re.findall(r'"nick":"(.*?)"',response.body)
+	    target = re.findall(r'"nid":"(.*?)"',response.body)
+            label = response.meta['label']
 
+	    for i in range(len(target)):
+		url = 'https://item.taobao.com/item.htm?id='+str(target[i])+'&ns=1&abbucket=8'
+		comment_url = 'https://rate.taobao.com/feedRateList.htm?auctionNumId='+str(target[i])+'&currentPageNum=1'
+		    
 
-		for i in range(len(target)):
-			url = 'https://item.taobao.com/item.htm?id='+str(target[i])+'&ns=1&abbucket=8'
-			comment_url = 'https://rate.taobao.com/feedRateList.htm?auctionNumId='+str(target[i])+'&currentPageNum=1'
-			data = {
-		    'title': title[i],
-		    'price': prices[i],
-		    'free_shipping': shipping[i],
-		    'month_sale':sales[i],
-		    'shop': shops[i],
-		    'addr': places[i],
-		    'url': comment_url
-			}
-
-			print url
-			yield scrapy.Request(url=url,meta={'data':data},callback=self.parse_prop)
+	        print label
+		yield scrapy.Request(url=comment_url,meta={'label':label,'url':comment_url},callback=self.parse_comment)
 
     # 获取下一页链接
 	# if i < 100:
@@ -84,15 +79,9 @@ class TaobaoSpider(scrapy.Spider):
 
 	def parse_comment(self, response):
 		item = TaobaoItem()
-		data = response.meta['data']
+		label = response.meta['label']
 		# print data['url']
-		item['title'] = data['title']
-		item['price'] = data['price']
-		item['free_shipping'] = data['free_shipping']
-		item['month_sale'] = data['month_sale']
-		item['shop'] = data['shop']
-		item['addr'] = data['addr']		
-		item['prop'] = data['prop']
+		item['label'] = label
 
 		jc = json.loads(response.body.strip().strip('()'))
 		max = jc['total']
@@ -107,26 +96,20 @@ class TaobaoSpider(scrapy.Spider):
 			while self.cnt < max - 3:
 				url = response.meta['url']
 				next_url = url[:-1] + str(self.cnt)
-				yield scrapy.Request(next_url, meta={'data': item,'url':url},callback=self.parse_comment)
+                                yield scrapy.Request(next_url, meta={'label':label,'url':url},callback=self.parse_comment)
 		else:
 			for j in jc:
+                                comment = j['content']
+                                item['comment' ]= comment
 				# users.append(j['user']['nick'])
-				print j
-				comment = {}
-				comment['product'] = j['auction']['sku']
-				comment['date'] = j['date']
-				comment['user'] = j['user']['nick']
-				comment['anony'] = j['user']['anony']
-				comment['content'] = j['content']
-				item['comment'] = comment
-				# if not (comment['content'] == '此用户没有填写评价。' or '系统默认' in comment['content']):
-				yield item
+				if not ( '此用户没有填写评价' in comment  or '系统默认' in comment):
+				    yield item
 
 		self.cnt += 1
 		while self.cnt < max - 3:
 			url = response.meta['url']
 			next_url = url[:-1] + str(self.cnt)
-			yield scrapy.Request(next_url, meta={'data': item,'url':url},callback=self.parse_comment)
+                        yield scrapy.Request(next_url, meta={'label':label,'url':url},callback=self.parse_comment)
 
 
 	def parse_prop(self,response):
