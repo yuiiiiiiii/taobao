@@ -12,10 +12,17 @@ from urlparse import urljoin
 import urllib
 from selenium.webdriver.support.ui import WebDriverWait
 import sys
+import emoji
 import chardet
 reload(sys)
 sys.setdefaultencoding('utf8') 
 
+
+def extract_emojis(str):
+    for c in str:
+        if c in emoji.UNICODE_EMOJI:
+            str.replace(c,'')
+    return str
 
 
 class TaobaoSpider(scrapy.Spider):
@@ -25,12 +32,12 @@ class TaobaoSpider(scrapy.Spider):
 	chrome_opt = webdriver.ChromeOptions()
 	prefs = {"profile.managed_default_content_settings.images": 2}
 	chrome_opt.add_experimental_option("prefs", prefs)
-        query_list = ["阔腿裤","T恤","运动鞋"]
+        query_list = ["运动鞋"]
 	urls = []
 
 	for item in query_list:
 		id = urllib.quote(item)
-		url = 'https://s.taobao.com/search?q='+id+'&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8&s=44'
+                url = 'https://s.taobao.com/search?q='+id+'&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8'
 		urls.append(url)
 
 	
@@ -50,7 +57,7 @@ class TaobaoSpider(scrapy.Spider):
 
 	def start_requests(self):
 		# url = 'https://s.taobao.com/search?q=%E9%98%94%E8%85%BF%E8%A3%A4&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8'
-            for i in range(3):
+            for i in range(1):
                 link = self.urls[i]
                 label = self.query_list[i]	
                 yield scrapy.Request(url = link,meta={'label':label},callback = self.parse)
@@ -97,9 +104,13 @@ class TaobaoSpider(scrapy.Spider):
 				url = response.meta['url']
 				next_url = url[:-1] + str(self.cnt)
                                 yield scrapy.Request(next_url, meta={'label':label,'url':url},callback=self.parse_comment)
+                        if self.cnt >= max - 3:
+                            self.cnt = 1
+                            return
 		else:
 			for j in jc:
                                 comment = j['content']
+                                comment = extract_emojis(comment)
                                 item['comment' ]= comment
 				# users.append(j['user']['nick'])
 				if not ( '此用户没有填写评价' in comment  or '系统默认' in comment):
