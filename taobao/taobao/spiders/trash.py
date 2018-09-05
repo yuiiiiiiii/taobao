@@ -37,7 +37,7 @@ class TaobaoSpider(scrapy.Spider):
 
 	for item in query_list:
 		id = urllib.quote(item)
-                url = 'https://s.taobao.com/search?q='+id+'&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8'
+                url = 'https://s.taobao.com/search?q='+id+'&imgfile=&js=1&stats_click=search_radio_all%3A1&initiative_id=staobaoz_20180530&ie=utf8&s=44'
 		urls.append(url)
 
 	

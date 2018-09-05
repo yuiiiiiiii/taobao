@@ -21,7 +21,7 @@ class TaobaoPipeline(object):
 	# 	self.file = open('items.pkl','wb')
 
     def __init__(self):
-        self.file = codecs.open('items.json', 'a',encoding='utf-8')
+        self.file = codecs.open('test.json', 'a',encoding='utf-8')
 
     def process_item(self, item, spider):
 		line = json.dumps(dict(item)) + '\n'

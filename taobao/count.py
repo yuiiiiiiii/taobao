@@ -3,9 +3,11 @@ import json
 import codecs
 
 data = []
-for line in codecs.open('items.json','rb',encoding='utf8'):
-    print line
+cnt = 0
+for line in codecs.open('test.json','rb',encoding='utf8'):
+    print str(cnt)+":"+line
     data.append(json.loads(line))
+    cnt += 1
 
 cnt = {}
 cnt['bag']=0
